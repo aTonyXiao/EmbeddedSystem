@@ -124,26 +124,6 @@ void LEDBlinkyRoutine()
     // Toggle the lines initially to turn off the LEDs.
     // The values driven are as required by the LEDs on the LP.
     //
-    GPIO_IF_LedOff(MCU_ALL_LED_IND);
-    while(1)
-    {
-        //
-        // Alternately toggle hi-low each of the GPIOs
-        // to switch the corresponding LED on/off.
-        //
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOn(MCU_RED_LED_GPIO);
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOff(MCU_RED_LED_GPIO);
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOn(MCU_ORANGE_LED_GPIO);
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOff(MCU_ORANGE_LED_GPIO);
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOn(MCU_GREEN_LED_GPIO);
-        MAP_UtilsDelay(8000000);
-        GPIO_IF_LedOff(MCU_GREEN_LED_GPIO);
-    }
 
 }
 //*****************************************************************************
@@ -226,19 +206,79 @@ main()
         //
         // Clearing the Terminal.
         //
-        ClearTerm();
+    ClearTerm();
 
-        DisplayBanner("GPIO");
-
+    DisplayBanner("GPIO");
 
     GPIO_IF_LedConfigure(LED1|LED2|LED3);
-
     GPIO_IF_LedOff(MCU_ALL_LED_IND);
+
+    int flag = 0;
+
+    while(1){
+        long sw3 = GPIOPinRead(GPIOA1_BASE, 0x20) >> 5 & 0x1;
+        long sw2 = GPIOPinRead(GPIOA2_BASE, 0x40) >> 6 & 0x1;
+
+        if(sw3 == 1 && flag != 1){
+            flag = 1;
+            GPIOPinWrite(GPIOA3_BASE, 0x10, 0);
+            GPIOPinWrite(GPIOA2_BASE, 0x40, 0);
+
+            while(1) {
+                Report("SW3 Pressed\n\r");
+
+                GPIO_IF_LedOff(MCU_ALL_LED_IND);
+                int i;
+                for(i = 0; i < 8; i++){
+                    int tmp = i;
+//                    MAP_UtilsDelay(8000000);
+                    if((tmp & 0x1) == 1)
+                        GPIO_IF_LedOn(MCU_RED_LED_GPIO);
+                    if((tmp & 0x2) == 2)
+                        GPIO_IF_LedOn(MCU_ORANGE_LED_GPIO);
+                    if((tmp & 0x4) == 4)
+                        GPIO_IF_LedOn(MCU_GREEN_LED_GPIO);
+                    MAP_UtilsDelay(4000000);
+                    GPIO_IF_LedOff(MCU_ALL_LED_IND);
+                    MAP_UtilsDelay(8000000);
+                }
+
+                sw2 = GPIOPinRead(GPIOA2_BASE, 0x40) >> 6 & 0x1;
+                if(sw2 == 1)
+                    break;
+
+            }
+
+           }
+
+        if(sw2 == 1 && flag != 2){
+            flag = 2;
+            GPIOPinWrite(GPIOA1_BASE, 0x20, 0);
+            GPIOPinWrite(GPIOA3_BASE, 0x10, 1);
+            while(1){
+                Report("SW2 Pressed\n\r");
+                MAP_UtilsDelay(8000000);
+                GPIO_IF_LedOn(MCU_ALL_LED_IND);
+                MAP_UtilsDelay(8000000);
+                GPIO_IF_LedOff(MCU_ALL_LED_IND);
+
+
+
+                sw3 = GPIOPinRead(GPIOA1_BASE, 0x20) >> 5 & 0x1;
+                if(sw3 == 1)
+                    break;
+
+            }
+        }
+
+    }
+
+
     
     //
     // Start the LEDBlinkyRoutine
     //
-    LEDBlinkyRoutine();
+
     return 0;
 }
 

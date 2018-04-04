@@ -9,11 +9,11 @@ CMD_SRCS += \
 ../cc3200v1p32.cmd 
 
 C_SRCS += \
-C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/gpio_if.c \
+E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/gpio_if.c \
 ../main.c \
 ../pin_mux_config.c \
-C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/startup_ccs.c \
-C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/uart_if.c 
+E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/startup_ccs.c \
+E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/uart_if.c 
 
 C_DEPS += \
 ./gpio_if.d \
@@ -44,10 +44,10 @@ C_DEPS__QUOTED += \
 "uart_if.d" 
 
 C_SRCS__QUOTED += \
-"C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/gpio_if.c" \
+"E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/gpio_if.c" \
 "../main.c" \
 "../pin_mux_config.c" \
-"C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/startup_ccs.c" \
-"C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/uart_if.c" 
+"E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/startup_ccs.c" \
+"E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/uart_if.c" 
 
 
