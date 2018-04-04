@@ -254,7 +254,7 @@ main()
         if(sw2 == 1 && flag != 2){
             flag = 2;
             GPIOPinWrite(GPIOA1_BASE, 0x20, 0);
-            GPIOPinWrite(GPIOA3_BASE, 0x10, 1);
+            GPIOPinWrite(GPIOA3_BASE, 0x10, 1<<4);
             while(1){
                 Report("SW2 Pressed\n\r");
                 MAP_UtilsDelay(8000000);
