@@ -1,57 +1,5 @@
 //*****************************************************************************
-//
-// Copyright (C) 2014 Texas Instruments Incorporated - http://www.ti.com/ 
-// 
-// 
-//  Redistribution and use in source and binary forms, with or without 
-//  modification, are permitted provided that the following conditions 
-//  are met:
-//
-//    Redistributions of source code must retain the above copyright 
-//    notice, this list of conditions and the following disclaimer.
-//
-//    Redistributions in binary form must reproduce the above copyright
-//    notice, this list of conditions and the following disclaimer in the 
-//    documentation and/or other materials provided with the   
-//    distribution.
-//
-//    Neither the name of Texas Instruments Incorporated nor the names of
-//    its contributors may be used to endorse or promote products derived
-//    from this software without specific prior written permission.
-//
-//  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
-//  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT 
-//  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-//  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-//  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-//  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-//  LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-//  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-//  THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-//  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
-//  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-//*****************************************************************************
-
-//*****************************************************************************
-//
-// Application Name     - Blinky
-// Application Overview - The objective of this application is to showcase the 
-//                        GPIO control using Driverlib api calls. The LEDs 
-//                        connected to the GPIOs on the LP are used to indicate 
-//                        the GPIO output. The GPIOs are driven high-low 
-//                        periodically in order to turn on-off the LEDs.
-// Application Details  -
-// http://processors.wiki.ti.com/index.php/CC32xx_Blinky_Application
-// or
-// docs\examples\CC32xx_Blinky_Application.pdf
-//
-//*****************************************************************************
-
-//****************************************************************************
-//
-//! \addtogroup blinky
-//! @{
+// Tony Xiao, Kelly Su
 //
 //****************************************************************************
 
@@ -95,13 +43,13 @@ extern uVectorEntry __vector_table;
 
 
 //*****************************************************************************
-//                      LOCAL FUNCTION PROTOTYPES                           
+//                      LOCAL FUNCTION PROTOTYPES
 //*****************************************************************************
 void LEDBlinkyRoutine();
 static void BoardInit(void);
 
 //*****************************************************************************
-//                      LOCAL FUNCTION DEFINITIONS                         
+//                      LOCAL FUNCTION DEFINITIONS
 //*****************************************************************************
 
 //*****************************************************************************
@@ -109,8 +57,8 @@ static void BoardInit(void);
 //! Configures the pins as GPIOs and peroidically toggles the lines
 //!
 //! \param None
-//! 
-//! This function  
+//!
+//! This function
 //!    1. Configures 3 lines connected to LEDs as GPIO
 //!    2. Sets up the GPIO pins as output
 //!    3. Periodically toggles each LED one by one by toggling the GPIO line
@@ -150,7 +98,6 @@ BoardInit(void)
     MAP_IntVTableBaseSet((unsigned long)&__vector_table);
 #endif
 #endif
-    
     //
     // Enable Processor
     //
@@ -159,21 +106,9 @@ BoardInit(void)
 
     PRCMCC3200MCUInit();
 }
-//****************************************************************************
-//
-//! Main function
-//!
-//! \param none
-//! 
-//! This function  
-//!    1. Invokes the LEDBlinkyTask
-//!
-//! \return None.
-//
-//****************************************************************************
 
-static void
-DisplayBanner(char * AppName)
+// display the Banner message in the console
+static void DisplayBanner(char * AppName)
 {
 
     Report("\n\n\n\r");
@@ -188,6 +123,20 @@ DisplayBanner(char * AppName)
 
 }
 
+//****************************************************************************
+//
+//! Main function
+//!
+//! \param none
+//!
+//! This function
+//!    keep polling the sw2 and sw3 input
+//!    count 000 - 111, set P18 to low when sw3 pressed
+//!    blink LEDs in unison, set P18 to low when sw2 pressed
+//! \return None.
+//
+//****************************************************************************
+
 int
 main()
 {
@@ -195,7 +144,7 @@ main()
     // Initialize Board configurations
     //
     BoardInit();
-    
+
     //
     // Power on the corresponding GPIO port B for 9,10,11.
     // Set up the GPIO lines to mode 0 (GPIO)
@@ -208,77 +157,63 @@ main()
         //
     ClearTerm();
 
-    DisplayBanner("GPIO");
+    DisplayBanner("GPIO"); // DisplayBanner, print to Banner
 
-    GPIO_IF_LedConfigure(LED1|LED2|LED3);
-    GPIO_IF_LedOff(MCU_ALL_LED_IND);
+    GPIO_IF_LedConfigure(LED1|LED2|LED3);// config LEDs
+    GPIO_IF_LedOff(MCU_ALL_LED_IND); // Turn off all LEDs
 
     int flag = 0;
 
     while(1){
-        long sw3 = GPIOPinRead(GPIOA1_BASE, 0x20) >> 5 & 0x1;
-        long sw2 = GPIOPinRead(GPIOA2_BASE, 0x40) >> 6 & 0x1;
+        long sw3 = GPIOPinRead(GPIOA1_BASE, 0x20) >> 5 & 0x1; // read SW3
+        long sw2 = GPIOPinRead(GPIOA2_BASE, 0x40) >> 6 & 0x1; // read SW2
 
-        if(sw3 == 1 && flag != 1){
+        if(sw3 == 1 && flag != 1){ // if SW3 is Pressed && sw3 is not pressed continousely
             flag = 1;
-            GPIOPinWrite(GPIOA3_BASE, 0x10, 0);
-            GPIOPinWrite(GPIOA2_BASE, 0x40, 0);
+            GPIOPinWrite(GPIOA3_BASE, 0x10, 0); // set P18 as low
+            GPIOPinWrite(GPIOA2_BASE, 0x40, 0); // set SW2 as low(unpressed)
 
             while(1) {
-                Report("SW3 Pressed\n\r");
-
-                GPIO_IF_LedOff(MCU_ALL_LED_IND);
+                Report("SW3 Pressed\n\r"); // print to console
                 int i;
-                for(i = 0; i < 8; i++){
+
+                for(i = 0; i < 8; i++){ // count 000 to 111
                     int tmp = i;
-//                    MAP_UtilsDelay(8000000);
-                    if((tmp & 0x1) == 1)
+                    if((tmp & 0x1) == 1) // check the first position of binary counter
                         GPIO_IF_LedOn(MCU_RED_LED_GPIO);
-                    if((tmp & 0x2) == 2)
+                    if((tmp & 0x2) == 2) // check the second position of binary counter
                         GPIO_IF_LedOn(MCU_ORANGE_LED_GPIO);
-                    if((tmp & 0x4) == 4)
+                    if((tmp & 0x4) == 4) // check the third position of binary counter
                         GPIO_IF_LedOn(MCU_GREEN_LED_GPIO);
-                    MAP_UtilsDelay(4000000);
-                    GPIO_IF_LedOff(MCU_ALL_LED_IND);
-                    MAP_UtilsDelay(8000000);
+                    MAP_UtilsDelay(4000000); // disaply delay
+                    GPIO_IF_LedOff(MCU_ALL_LED_IND); // turn off all leds
+                    MAP_UtilsDelay(8000000); // disaply delay
                 }
-
-                sw2 = GPIOPinRead(GPIOA2_BASE, 0x40) >> 6 & 0x1;
-                if(sw2 == 1)
+                sw2 = GPIOPinRead(GPIOA2_BASE, 0x40) >> 6 & 0x1; //read sw2
+                if(sw2 == 1) // if pressed, escape the while loop
                     break;
-
             }
-
            }
 
-        if(sw2 == 1 && flag != 2){
+        if(sw2 == 1 && flag != 2){ // if SW2 is Pressed && SW2 is not pressed continousely
             flag = 2;
-            GPIOPinWrite(GPIOA1_BASE, 0x20, 0);
-            GPIOPinWrite(GPIOA3_BASE, 0x10, 1);
+            GPIOPinWrite(GPIOA1_BASE, 0x20, 0); // set sw3 as unpressed
+            GPIOPinWrite(GPIOA3_BASE, 0x10, 1<<4); // set P18 as high
             while(1){
-                Report("SW2 Pressed\n\r");
-                MAP_UtilsDelay(8000000);
-                GPIO_IF_LedOn(MCU_ALL_LED_IND);
-                MAP_UtilsDelay(8000000);
-                GPIO_IF_LedOff(MCU_ALL_LED_IND);
+                Report("SW2 Pressed\n\r"); // print to console
+                MAP_UtilsDelay(8000000); // disaply delay
+                GPIO_IF_LedOn(MCU_ALL_LED_IND); // turn on all LED
+                MAP_UtilsDelay(8000000); // disaply delay
+                GPIO_IF_LedOff(MCU_ALL_LED_IND); // turn off all LED
 
-
-
-                sw3 = GPIOPinRead(GPIOA1_BASE, 0x20) >> 5 & 0x1;
-                if(sw3 == 1)
+                sw3 = GPIOPinRead(GPIOA1_BASE, 0x20) >> 5 & 0x1; // read SW3
+                if(sw3 == 1) // if SW3 is pressed, escape the while loop
                     break;
 
             }
         }
 
     }
-
-
-    
-    //
-    // Start the LEDBlinkyRoutine
-    //
-
     return 0;
 }
 
