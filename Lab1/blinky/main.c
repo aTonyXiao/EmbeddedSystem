@@ -162,6 +162,10 @@ main()
     GPIO_IF_LedConfigure(LED1|LED2|LED3);// config LEDs
     GPIO_IF_LedOff(MCU_ALL_LED_IND); // Turn off all LEDs
 
+    // flag keeps track of the state of the program in terms of what was previously pressed
+    // flag == 0 at the start when no switches have been pressed
+    // flag == 1 if sw3 has been previously pressed
+    // flag == 2 if sw2 has been previously pressed
     int flag = 0;
 
     while(1){
