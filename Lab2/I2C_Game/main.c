@@ -1,3 +1,6 @@
+// Names: Kelly Su, Tony Xiao
+// Lab 2 Embedded Systems
+
 // Standard includes
 #include <stdio.h>
 #include <string.h>
