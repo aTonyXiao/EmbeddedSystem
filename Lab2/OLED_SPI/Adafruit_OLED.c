@@ -33,14 +33,14 @@ void writeCommand(unsigned char c) {
 *
 */
     unsigned long trash;
-    unsigned long tmp = (unsigned long)c;
-    MAP_SPICSEnable(GSPI_BASE);
+    unsigned long tmp = (unsigned long)c; // convert the char to a long to be written to register
+    MAP_SPICSEnable(GSPI_BASE); // enable SPI protocol
     GPIOPinWrite(GPIOA0_BASE, 0x40, 0); // set OC to low
     GPIOPinWrite(GPIOA2_BASE, 0x40, 0x00); // set DC to low for command input
     MAP_SPIDataPut(GSPI_BASE, tmp); // write the data
-    MAP_SPIDataGet(GSPI_BASE, &trash); // dispose the dummy data
-    GPIOPinWrite(GPIOA0_BASE, 0x40, 0x40); //set OC to high
-    MAP_SPICSDisable(GSPI_BASE);
+    MAP_SPIDataGet(GSPI_BASE, &trash); // get the data but it is not needed for this lab
+    GPIOPinWrite(GPIOA0_BASE, 0x40, 0x40); // set OC to high
+    MAP_SPICSDisable(GSPI_BASE); // disable SPI protocol
 
 
 }
@@ -55,14 +55,14 @@ void writeData(unsigned char c) {
 
     // same as writeCommand but set DC as high
     unsigned long trash;
-    unsigned long tmp = (unsigned long)c;
-       MAP_SPICSEnable(GSPI_BASE);
-       GPIOPinWrite(GPIOA0_BASE, 0x40, 0); // OC
-       GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40);
-       MAP_SPIDataPut(GSPI_BASE,tmp);
-       MAP_SPIDataGet(GSPI_BASE, &trash);
-       GPIOPinWrite(GPIOA0_BASE, 0x40, 0x40); // OC
-       MAP_SPICSDisable(GSPI_BASE);
+    unsigned long tmp = (unsigned long)c; // convert the char to a long to be written to register
+       MAP_SPICSEnable(GSPI_BASE); // enable SPI protocol
+       GPIOPinWrite(GPIOA0_BASE, 0x40, 0); // set OC to low
+       GPIOPinWrite(GPIOA2_BASE, 0x40, 0x40); // set DC to high for data input
+       MAP_SPIDataPut(GSPI_BASE,tmp); // write the data
+       MAP_SPIDataGet(GSPI_BASE, &trash); // get the data but it is not needed for this lab
+       GPIOPinWrite(GPIOA0_BASE, 0x40, 0x40); // set OC to high
+       MAP_SPICSDisable(GSPI_BASE);  // disable SPI protocol
 }
 
 //*****************************************************************************
