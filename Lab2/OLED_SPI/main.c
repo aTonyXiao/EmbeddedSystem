@@ -1,3 +1,6 @@
+// Names: Kelly Su, Tony Xiao
+// Lab 2 Embedded Systems
+
 //*****************************************************************************
 //
 // Copyright (C) 2014 Texas Instruments Incorporated - http://www.ti.com/ 
