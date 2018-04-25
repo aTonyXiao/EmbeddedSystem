@@ -104,15 +104,18 @@ static void BoardInit(void)
 
 void startGame() // game: move blue ball to red ball position 3 times to win the game
 {
-    int x, y;
-    int xCoord = 64;
+    int x, y; // acceleration of blue ball
+  
+    // set the blue ball's initial position to be in the center of the screen
+    int xCoord = 64; 
     int yCoord = 64;
+  
     unsigned char offSetX = 0x03;
     unsigned char offSetY = 0x05;
     unsigned char xSpeed, ySpeed;
-
-    int time2Win = 3;
-    int i;
+  
+    int time2Win = 3; // number of times to win the game
+    int i; // count number of times that user has won
 
     // welcome message
     fillScreen(BLACK);
@@ -133,34 +136,37 @@ void startGame() // game: move blue ball to red ball position 3 times to win the
     //3 times to win
     for (i = 0; i < time2Win; i++)
     {
-        // red ball pos
-        int ballPosX;
+        // red ball position
+        int ballPosX; 
         int ballPosY;
 
-        //random generate the ball position
+        // randomly generate the ball position
         ballPosX = rand() % 123;
         ballPosY = rand() % 123;
 
         fillScreen(BLACK);
-        fillCircle(ballPosX, ballPosY, 4, RED); // show the red ball on the OLED
-        fillScreen(BLACK); // hid the red ball, let user to find it
+        fillCircle(ballPosX, ballPosY, 4, RED); // display the red ball on the OLED screen
+        fillScreen(BLACK); // hide the red ball, let user to find it
 
         int timer = 0; // counter act as timer
 
-        while (1) //read the data from accelerator make the ball move
+        while (1) // read the data from accelerator make the ball move
         {
             // get the acceleration in X, Y direction
             I2C_IF_Write(0x18, &offSetX, 1, 0);
             I2C_IF_Read(0x18, &xSpeed, 1);
             I2C_IF_Write(0x18, &offSetY, 1, 0);
             I2C_IF_Read(0x18, &ySpeed, 1);
-            y = (int) ((signed char) xSpeed);       // - 128;
-            x = (int) ((signed char) ySpeed);       // - 128;
+          
+            y = (int) ((signed char) xSpeed);       // - 128; convert the acceleration read to a signed int
+            x = (int) ((signed char) ySpeed);       // - 128; convert the acceleration read to a signed int
+          
             fillCircle(xCoord, yCoord, 2, BLUE); // draw the ball at 64,64 (center) at the beginning
 
             // calculate new X position, Y position by adding the 0.1 * accelerator data
             xCoord = xCoord + x * 0.1;
-            if (xCoord >= 123) // preventing the ball move beyond the screen
+          
+            if (xCoord >= 123) // prevent the ball from moving beyond the screen
             {
                 xCoord = 123;
             }
@@ -168,6 +174,7 @@ void startGame() // game: move blue ball to red ball position 3 times to win the
             {
                 xCoord = 4;
             }
+          
             yCoord = yCoord + y * 0.1;
             if (yCoord >= 123)
             {
@@ -179,16 +186,20 @@ void startGame() // game: move blue ball to red ball position 3 times to win the
             }
 
             fillCircle(xCoord, yCoord, 2, BLUE); // draw the ball
+            
+            // if blue ball is moving close to red ball position, then tell the user how many more times to win
 
-            if ((abs(ballPosX - xCoord) <= 2) && (abs(ballPosY - yCoord) <= 2)) // if blue ball is moving close to red ball position, then record it
+            if ((abs(ballPosX - xCoord) <= 2) && (abs(ballPosY - yCoord) <= 2))             
             {
-                char* message = "0 Times to Win";
+                char* message = "0 More Times to Win";
                 message[0] = time2Win - i - 1 + '0';
                 setCursor(0, 0);
                 Outstr(message);
                 delay(100);
                 break;
             }
+          
+            // if the timer runs out, display a losing message
 
             if (timer > 200) // time out
             {
@@ -207,9 +218,12 @@ void startGame() // game: move blue ball to red ball position 3 times to win the
                 delay(100);
                 return;
             }
-            timer++;
+          
+            timer++; // increment the timer each time while loop completes execution
         }
-        timer = 0;
+      
+        timer = 0; // restart the timer for every round
+      
     }
 
     //winning message
@@ -269,7 +283,8 @@ void main()
     fillScreen(BLACK);
     // call the game start
     startGame();
-    // print to OLED message: Press sw3 try again
+  
+    // print to OLED message: Press sw3 to try again after the end of the game
     fillScreen(BLACK);
     setTextColor(WHITE, BLACK);
     setTextSize(2);
@@ -283,10 +298,12 @@ void main()
 
     // set sw3 as low(initialization)
     GPIOPinWrite(GPIOA2_BASE, 0x40, 0);
+  
     // keep polling the value of sw3
     while (1)
     {
-        long sw3 = GPIOPinRead(GPIOA1_BASE, 0x20) >> 5 & 0x1;
+        long sw3 = GPIOPinRead(GPIOA1_BASE, 0x20) >> 5 & 0x1; // read in the value of switch 3
+      
         if (sw3 == 1) // if sw3 is pressed start the game
         {
             GPIOPinWrite(GPIOA1_BASE, 0x20, 0); // set it back to low
