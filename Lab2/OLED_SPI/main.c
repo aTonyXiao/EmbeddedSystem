@@ -77,14 +77,7 @@
 
 
 #define APPLICATION_VERSION     "1.1.1"
-//*****************************************************************************
-//
-// Application Master/Slave mode selector macro
-//
-// MASTER_MODE = 1 : Application in master mode
-// MASTER_MODE = 0 : Application in slave mode
-//
-//*****************************************************************************
+
 #define MASTER_MODE      1
 
 #define SPI_IF_BIT_RATE  100000
@@ -93,13 +86,6 @@
 #define MASTER_MSG       "This is CC3200 SPI Master Application\n\r"
 #define SLAVE_MSG        "This is CC3200 SPI Slave Application\n\r"
 
-//*****************************************************************************
-//                 GLOBAL VARIABLES -- Start
-//*****************************************************************************
-static unsigned char g_ucTxBuff[TR_BUFF_SIZE];
-static unsigned char g_ucRxBuff[TR_BUFF_SIZE];
-static unsigned char ucTxBuffNdx;
-static unsigned char ucRxBuffNdx;
 
 #if defined(ccs)
 extern void (* const g_pfnVectors[])(void);
@@ -113,27 +99,6 @@ extern uVectorEntry __vector_table;
 
 
 
-//*****************************************************************************
-//
-//! SPI Slave Interrupt handler
-//!
-//! This function is invoked when SPI slave has its receive register full or
-//! transmit register empty.
-//!
-//! \return None.
-//
-//*****************************************************************************
-
-//*****************************************************************************
-//
-//! SPI Master mode main loop
-//!
-//! This function configures SPI modelue as master and enables the channel for
-//! communication
-//!
-//! \return None.
-//
-//*****************************************************************************
 void MasterMain()
 {
 
@@ -158,21 +123,22 @@ void MasterMain()
     //
     MAP_SPIEnable(GSPI_BASE);
 
-
+    //OLED initialization
     Adafruit_Init();
-    //
+    //fill screen with black
     fillScreen(BLACK);
     while(1){
         fillScreen(BLACK);
-//        testmessage();
-//        delay(100);
-//        fillScreen(BLACK);
-        setTextColor(BLUE, BLACK);
-        setTextSize(2);
-        Outstr("Hello ");
-        setTextColor(MAGENTA, BLACK);
-        Outstr("world!");
+        testmessage(); // function in test.h print all character in glcdfont.h
         delay(100);
+        fillScreen(BLACK);
+        setTextColor(BLUE, BLACK); //set text color
+        setTextSize(2);  //set text size
+        Outstr("Hello "); // print string to the OLED
+        setTextColor(MAGENTA, BLACK); // set another color
+        Outstr("world!");
+        delay(100); // time delay for next display
+        // call all test functions in order and 100 as time delay between them
         testtriangles();
         delay(100);
         lcdTestPattern();
@@ -279,7 +245,7 @@ void main()
     // Reset the peripheral
     //
     MAP_PRCMPeripheralReset(PRCM_GSPI);
-    MasterMain();
+    MasterMain();// Master function
 
 
 }

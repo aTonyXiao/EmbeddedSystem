@@ -99,7 +99,7 @@ static void BoardInit(void)
 //! 
 //*****************************************************************************
 
-void startGame()
+void startGame() // game: move blue ball to red ball position 3 times to win the game
 {
     int x, y;
     int xCoord = 64;
@@ -111,6 +111,7 @@ void startGame()
     int time2Win = 3;
     int i;
 
+    // welcome message
     fillScreen(BLACK);
     setTextColor(BLUE, BLACK);
     setTextSize(2);
@@ -126,32 +127,37 @@ void startGame()
     Outstr("to win");
     delay(100);
 
+    //3 times to win
     for (i = 0; i < time2Win; i++)
     {
-
+        // red ball pos
         int ballPosX;
         int ballPosY;
 
+        //random generate the ball position
         ballPosX = rand() % 123;
         ballPosY = rand() % 123;
 
         fillScreen(BLACK);
-        fillCircle(ballPosX, ballPosY, 4, RED);
-        fillScreen(BLACK);
+        fillCircle(ballPosX, ballPosY, 4, RED); // show the red ball on the OLED
+        fillScreen(BLACK); // hid the red ball, let user to find it
 
-        int timer = 0;
+        int timer = 0; // counter act as timer
 
-        while (1)
+        while (1) //read the data from accelerator make the ball move
         {
+            // get the acceleration in X, Y direction
             I2C_IF_Write(0x18, &offSetX, 1, 0);
             I2C_IF_Read(0x18, &xSpeed, 1);
             I2C_IF_Write(0x18, &offSetY, 1, 0);
             I2C_IF_Read(0x18, &ySpeed, 1);
             y = (int) ((signed char) xSpeed);       // - 128;
             x = (int) ((signed char) ySpeed);       // - 128;
-            fillCircle(xCoord, yCoord, 2, BLACK);
+            fillCircle(xCoord, yCoord, 2, BLUE); // draw the ball at 64,64 (center) at the beginning
+
+            // calculate new X position, Y position by adding the 0.1 * accelerator data
             xCoord = xCoord + x * 0.1;
-            if (xCoord >= 123)
+            if (xCoord >= 123) // preventing the ball move beyond the screen
             {
                 xCoord = 123;
             }
@@ -169,9 +175,9 @@ void startGame()
                 yCoord = 4;
             }
 
-            fillCircle(xCoord, yCoord, 2, BLUE);
+            fillCircle(xCoord, yCoord, 2, BLUE); // draw the ball
 
-            if ((abs(ballPosX - xCoord) <= 2) && (abs(ballPosY - yCoord) <= 2))
+            if ((abs(ballPosX - xCoord) <= 2) && (abs(ballPosY - yCoord) <= 2)) // if blue ball is moving close to red ball position, then record it
             {
                 char* message = "0 Times to Win";
                 message[0] = time2Win - i - 1 + '0';
@@ -181,7 +187,7 @@ void startGame()
                 break;
             }
 
-            if (timer > 200)
+            if (timer > 200) // time out
             {
                 fillScreen(BLACK);
                 setTextColor(BLUE, BLACK);
@@ -203,6 +209,7 @@ void startGame()
         timer = 0;
     }
 
+    //winning message
     fillScreen(BLACK);
     setTextColor(BLUE, BLACK);
     setTextSize(2);
@@ -253,11 +260,13 @@ void main()
     //
     MAP_SPIEnable(GSPI_BASE);
 
+    // initialize the OLED
     Adafruit_Init();
-    //
+    // fill screen as black
     fillScreen(BLACK);
-
+    // call the game start
     startGame();
+    // print to OLED message: Press sw3 try again
     fillScreen(BLACK);
     setTextColor(WHITE, BLACK);
     setTextSize(2);
@@ -269,14 +278,16 @@ void main()
     Outstr("try again");
     delay(100);
 
+    // set sw3 as low(initialization)
     GPIOPinWrite(GPIOA2_BASE, 0x40, 0);
+    // keep polling the value of sw3
     while (1)
     {
         long sw3 = GPIOPinRead(GPIOA1_BASE, 0x20) >> 5 & 0x1;
-        if (sw3 == 1)
+        if (sw3 == 1) // if sw3 is pressed start the game
         {
-            GPIOPinWrite(GPIOA1_BASE, 0x20, 0);
-            startGame();
+            GPIOPinWrite(GPIOA1_BASE, 0x20, 0); // set it back to low
+            startGame(); // start game
             fillScreen(BLACK);
             setTextColor(WHITE, BLACK);
             setTextSize(2);

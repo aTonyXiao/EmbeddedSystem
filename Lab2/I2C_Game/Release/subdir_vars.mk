@@ -11,11 +11,11 @@ CMD_SRCS += \
 C_SRCS += \
 ../Adafruit_GFX.c \
 ../Adafruit_OLED.c \
-E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/i2c_if.c \
+C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/i2c_if.c \
 ../main.c \
 ../pin_mux_config.c \
-E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/startup_ccs.c \
-E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/uart_if.c 
+C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/startup_ccs.c \
+C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/uart_if.c 
 
 C_DEPS += \
 ./Adafruit_GFX.d \
@@ -56,10 +56,10 @@ C_DEPS__QUOTED += \
 C_SRCS__QUOTED += \
 "../Adafruit_GFX.c" \
 "../Adafruit_OLED.c" \
-"E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/i2c_if.c" \
+"C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/i2c_if.c" \
 "../main.c" \
 "../pin_mux_config.c" \
-"E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/startup_ccs.c" \
-"E:/TI/CC3200SDK_1.3.0/cc3200-sdk/example/common/uart_if.c" 
+"C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/startup_ccs.c" \
+"C:/ti/CC3200SDK_1.3.0/cc3200-sdk/example/common/uart_if.c" 
 
 

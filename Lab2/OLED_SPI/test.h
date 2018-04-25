@@ -245,7 +245,7 @@ void lcdTestPattern2(void)
 }
 
 /**************************************************************************/
-void testmessage()
+void testmessage() // test messages
 {
   unsigned char textsize=1;
 

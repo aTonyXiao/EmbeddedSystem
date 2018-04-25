@@ -4,7 +4,7 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS
+CG_TOOL_ROOT := C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS
 
 GEN_OPTS__FLAG := 
 GEN_CMDS__FLAG := 
@@ -12,7 +12,6 @@ GEN_CMDS__FLAG :=
 ORDERED_OBJS += \
 "./Adafruit_GFX.obj" \
 "./Adafruit_OLED.obj" \
-"./i2c_if.obj" \
 "./main.obj" \
 "./pin_mux_config.obj" \
 "./startup_ccs.obj" \
@@ -20,7 +19,7 @@ ORDERED_OBJS += \
 "../cc3200v1p32.cmd" \
 $(GEN_CMDS__FLAG) \
 -llibc.a \
--l"E:/TI/CC3200SDK_1.3.0/cc3200-sdk/driverlib/ccs/Release/driverlib.a" \
+-l"C:/ti/CC3200SDK_1.3.0/cc3200-sdk/driverlib/ccs/Release/driverlib.a" \
 
 -include ../makefile.init
 
@@ -127,48 +126,47 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXE_OUTPUTS += \
-OLED_SPI.out \
+spi_demo.out \
 
 EXE_OUTPUTS__QUOTED += \
-"OLED_SPI.out" \
+"spi_demo.out" \
 
 BIN_OUTPUTS += \
-OLED_SPI.bin \
+spi_demo.bin \
 
 BIN_OUTPUTS__QUOTED += \
-"OLED_SPI.bin" \
+"spi_demo.bin" \
 
 
 # All Target
-all: OLED_SPI.out
+all: spi_demo.out
 
 # Tool invocations
-OLED_SPI.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
-	@echo 'Building target: "$@"'
+spi_demo.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
+	@echo 'Building target: $@'
 	@echo 'Invoking: ARM Linker'
-	"E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=vfplib -me --define=ccs --define=cc3200 -g --diag_warning=225 --diag_wrap=off --display_error_number --abi=eabi -z -m"OLED_SPI.map" --heap_size=0x800 --stack_size=0x800 -i"E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/lib" -i"E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="OLED_SPI_linkInfo.xml" --rom_model -o "OLED_SPI.out" $(ORDERED_OBJS)
-	@echo 'Finished building target: "$@"'
+	"C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=vfplib -me --define=ccs --define=cc3200 -g --diag_warning=225 --diag_wrap=off --display_error_number --abi=eabi -z -m"spi_demo.map" --heap_size=0x800 --stack_size=0x800 -i"C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/lib" -i"C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="spi_demo_linkInfo.xml" --rom_model -o "spi_demo.out" $(ORDERED_OBJS)
+	@echo 'Finished building target: $@'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build
 
-OLED_SPI.bin: $(EXE_OUTPUTS)
-	@echo 'Building files: $(strip $(EXE_OUTPUTS__QUOTED))'
+spi_demo.bin: $(EXE_OUTPUTS)
 	@echo 'Invoking: ARM Hex Utility'
-	"E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/bin/armhex"  -o "OLED_SPI.bin" $(EXE_OUTPUTS__QUOTED)
-	@echo 'Finished building: $(strip $(EXE_OUTPUTS__QUOTED))'
+	"C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/bin/armhex"  -o "spi_demo.bin" $(EXE_OUTPUTS__QUOTED)
+	@echo 'Finished building: $@'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build
 
 # Other Targets
 clean:
 	-$(RM) $(BIN_OUTPUTS__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "Adafruit_GFX.obj" "Adafruit_OLED.obj" "i2c_if.obj" "main.obj" "pin_mux_config.obj" "startup_ccs.obj" "uart_if.obj" 
-	-$(RM) "Adafruit_GFX.d" "Adafruit_OLED.d" "i2c_if.d" "main.d" "pin_mux_config.d" "startup_ccs.d" "uart_if.d" 
+	-$(RM) "Adafruit_GFX.obj" "Adafruit_OLED.obj" "main.obj" "pin_mux_config.obj" "startup_ccs.obj" "uart_if.obj" 
+	-$(RM) "Adafruit_GFX.d" "Adafruit_OLED.d" "main.d" "pin_mux_config.d" "startup_ccs.d" "uart_if.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 
 post-build:
-	-"E:/CCS/ccsv7/utils/tiobj2bin/tiobj2bin" "OLED_SPI.out" "OLED_SPI.bin" "E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/bin/armofd" "E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/bin/armhex" "E:/CCS/ccsv7/utils/tiobj2bin/mkhex4bin"
+	-"C:/ti/ccsv7/utils/tiobj2bin/tiobj2bin" "spi_demo.out" "spi_demo.bin" "C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/bin/armofd" "C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/bin/armhex" "C:/ti/ccsv7/utils/tiobj2bin/mkhex4bin"
 	-@echo ' '
 
 .PHONY: all clean dependents

@@ -4,7 +4,7 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS
+CG_TOOL_ROOT := C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS
 
 GEN_OPTS__FLAG := 
 GEN_CMDS__FLAG := 
@@ -144,18 +144,17 @@ all: i2c_demo.out
 
 # Tool invocations
 i2c_demo.out: $(OBJS) $(CMD_SRCS) $(GEN_CMDS)
-	@echo 'Building target: "$@"'
+	@echo 'Building target: $@'
 	@echo 'Invoking: ARM Linker'
-	"E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=vfplib -me --define=ccs --define=NON_NETWORK --define=cc3200 -g --diag_warning=225 --diag_wrap=off --display_error_number --abi=eabi -z -m"i2c_demo.map" --heap_size=0x800 --stack_size=0x800 -i"E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/lib" -i"E:/TI/CC3200SDK_1.3.0/cc3200-sdk/driverlib/ccs/Release" -i"E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="i2c_demo_linkInfo.xml" --rom_model -o "i2c_demo.out" $(ORDERED_OBJS)
-	@echo 'Finished building target: "$@"'
+	"C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/bin/armcl" -mv7M4 --code_state=16 --float_support=vfplib -me --define=ccs --define=NON_NETWORK --define=cc3200 -g --diag_warning=225 --diag_wrap=off --display_error_number --abi=eabi -z -m"i2c_demo.map" --heap_size=0x800 --stack_size=0x800 -i"C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/lib" -i"C:/ti/CC3200SDK_1.3.0/cc3200-sdk/driverlib/ccs/Release" -i"C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/include" --reread_libs --diag_wrap=off --display_error_number --warn_sections --xml_link_info="i2c_demo_linkInfo.xml" --rom_model -o "i2c_demo.out" $(ORDERED_OBJS)
+	@echo 'Finished building target: $@'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build
 
 i2c_demo.bin: $(EXE_OUTPUTS)
-	@echo 'Building files: $(strip $(EXE_OUTPUTS__QUOTED))'
 	@echo 'Invoking: ARM Hex Utility'
-	"E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/bin/armhex"  -o "i2c_demo.bin" $(EXE_OUTPUTS__QUOTED)
-	@echo 'Finished building: $(strip $(EXE_OUTPUTS__QUOTED))'
+	"C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/bin/armhex"  -o "i2c_demo.bin" $(EXE_OUTPUTS__QUOTED)
+	@echo 'Finished building: $@'
 	@echo ' '
 	@$(MAKE) --no-print-directory post-build
 
@@ -168,7 +167,7 @@ clean:
 	-@echo ' '
 
 post-build:
-	-"E:/CCS/ccsv7/utils/tiobj2bin/tiobj2bin" "i2c_demo.out" "i2c_demo.bin" "E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/bin/armofd" "E:/CCS/ccsv7/tools/compiler/ti-cgt-arm_16.9.6.LTS/bin/armhex" "E:/CCS/ccsv7/utils/tiobj2bin/mkhex4bin"
+	-"C:/ti/ccsv7/utils/tiobj2bin/tiobj2bin" "i2c_demo.out" "i2c_demo.bin" "C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/bin/armofd" "C:/ti/ccsv7/tools/compiler/ti-cgt-arm_16.9.7.LTS/bin/armhex" "C:/ti/ccsv7/utils/tiobj2bin/mkhex4bin"
 	-@echo ' '
 
 .PHONY: all clean dependents
