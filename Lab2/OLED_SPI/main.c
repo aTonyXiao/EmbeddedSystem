@@ -128,40 +128,57 @@ void MasterMain()
 
     //OLED initialization
     Adafruit_Init();
+    
     //fill screen with black
     fillScreen(BLACK);
+    
+    // while loop displays the patterns in a loop
     while(1){
+        
         fillScreen(BLACK);
         testmessage(); // function in test.h print all character in glcdfont.h
         delay(100);
+        
         fillScreen(BLACK);
-        setTextColor(BLUE, BLACK); //set text color
-        setTextSize(2);  //set text size
+        setTextColor(BLUE, BLACK); // set text color
+        setTextSize(2);  // set text size
         Outstr("Hello "); // print string to the OLED
         setTextColor(MAGENTA, BLACK); // set another color
         Outstr("world!");
         delay(100); // time delay for next display
+        
+        // ADAFRUIT API CALLS  
         // call all test functions in order and 100 as time delay between them
         testtriangles();
         delay(100);
+        
         lcdTestPattern();
         delay(100);
+        
         lcdTestPattern2();
         delay(100);
+        
         testlines(YELLOW);
         delay(100);
+        
         testfastlines(BLUE, RED);
         delay(100);
+        
         testdrawrects(CYAN);
         delay(100);
+        
         testfillrects(MAGENTA, BLACK);
         delay(100);
+        
         testfillcircles(1, GREEN);
         delay(100);
+        
         testroundrects();
         delay(100);
+        
         testtriangles();
         delay(100);
+        
     }
 }
 
