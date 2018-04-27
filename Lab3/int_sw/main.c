@@ -31,6 +31,7 @@
 #include "prcm.h"
 #include "gpio.h"
 #include "utils.h"
+#include "timer.h"
 
 // Common interface includes
 #include "uart_if.h"
@@ -48,6 +49,14 @@ volatile unsigned long SW3_intcount;
 volatile unsigned char SW2_intflag;
 volatile unsigned char SW3_intflag;
 
+volatile unsigned long previous_time;
+volatile unsigned long ZERO_INTERVAL = 106667;
+volatile unsigned long encoded_value;
+volatile unsigned long last_button;
+volatile unsigned long ONE_BUTTON_TIMER_OUT = 80000*18;
+
+// frequency of clock per tick: 80MHZ = 12.5ns
+
 //*****************************************************************************
 //                 GLOBAL VARIABLES -- End
 //*****************************************************************************
@@ -58,7 +67,9 @@ typedef struct PinSetting {
     unsigned int pin;
 } PinSetting;
 
-static PinSetting switch2 = { .port = GPIOA2_BASE, .pin = 0x40};
+
+// pin 15
+static PinSetting sig_input = { .port = GPIOA2_BASE, .pin = 0x40};
 
 //*****************************************************************************
 //                      LOCAL FUNCTION PROTOTYPES                           
@@ -81,12 +92,29 @@ static void GPIOA1IntHandler(void) { // SW3 handler
 
 static void GPIOA2IntHandler(void) {	// SW2 handler
 	unsigned long ulStatus;
+	unsigned long current_time;
+	unsigned long diff_time;
 
-    ulStatus = MAP_GPIOIntStatus (switch2.port, true);
-    MAP_GPIOIntClear(switch2.port, ulStatus);		// clear interrupts on GPIOA2
-    SW2_intcount++;
-    SW2_intflag=1;
+    ulStatus = MAP_GPIOIntStatus (sig_input.port, true);
+    MAP_GPIOIntClear(sig_input.port, ulStatus);		// clear interrupts on GPIOA2
+    current_time = TimerValueGet(TIMERA2_BASE, TIMER_A);
+    diff_time = current_time - previous_time;
+    previous_time = current_time;
+
+    TimerValueSet(TIMERA2_BASE, TIMER_A);
+
+    if (diff_time >= end_length)
+        last_button = encoded_value;
+        encoded_value = 0;
+        previous_time = 0;
+    else if (diff_time >= init_length)
+        return;
+    else if (diff_time >= ZERO_INTERVAL)
+        (encoded_value << 1)++;
+    else
+        encoded_value << 1;
 }
+
 //*****************************************************************************
 //
 //! Board Initialization & Configuration
@@ -117,8 +145,39 @@ BoardInit(void) {
 //! \return None.
 //
 //****************************************************************************
+
+char decodeMapping(unsigned long binary_val) {
+
+    char c;
+
+    switch(binary_val) {
+        case 0000 0010 1111 1101 1000 0000 0111 1111: // button 1
+            c = '1';
+            break;
+        case 0000 0010 1111 1101 0100 0000 1011 1111: // button 2
+            c = '2';
+            break;
+        case 0000 0010 1111 1101 1100 0000 0011 1111: // button 3
+            c = '3';
+            break;
+        case 0000 0010 1111 1101 0010 0000 1101 1111:
+            c = '4';
+            break;
+        case 0000 0010 1111 1101 1010 0000 0101 1111:
+            c = '5';
+            break;
+        }
+
+    return c;
+
+}
+
 int main() {
 	unsigned long ulStatus;
+	unsigned long timer_start 100;
+	char [] message = '';
+	char c;
+
 
     BoardInit();
     
@@ -131,48 +190,66 @@ int main() {
     //
     // Register the interrupt handlers
     //
-    MAP_GPIOIntRegister(GPIOA1_BASE, GPIOA1IntHandler);
-    MAP_GPIOIntRegister(switch2.port, GPIOA2IntHandler);
+    MAP_GPIOIntRegister(sig_input.port, GPIOA2IntHandler);
 
-    //
-    // Configure rising edge interrupts on SW2 and SW3
-    //
-    MAP_GPIOIntTypeSet(GPIOA1_BASE, 0x20, GPIO_RISING_EDGE);	// SW3
-    MAP_GPIOIntTypeSet(switch2.port, switch2.pin, GPIO_RISING_EDGE);	// SW2
+    MAP_GPIOIntTypeSet(sig_input.port, sig_input.pin, GPIO_FALLING_EDGE);
 
-    ulStatus = MAP_GPIOIntStatus (GPIOA1_BASE, false);
-    MAP_GPIOIntClear(GPIOA1_BASE, ulStatus);			// clear interrupts on GPIOA1
-    ulStatus = MAP_GPIOIntStatus (switch2.port, false);
-    MAP_GPIOIntClear(switch2.port, ulStatus);			// clear interrupts on GPIOA2
+    MAP_TimerConfigure(TIMERA2_BASE, TIMER_CFG_PERIODIC_UP);
 
-    // clear global variables
-    SW2_intcount=0;
-    SW3_intcount=0;
-    SW2_intflag=0;
-    SW3_intflag=0;
+    // counts up
+    TimerValueSet(TIMERA2_BASE, TIMER_A, timer_start);
+
+    TimerEnable(TIMERA2_BASE, TIMER_A);
+
+    while(1) {
+
+        // one button time
+        while(1){
+
+            if (current_time < ONE_BUTTON_TIMER_OUT) {
+                // disable interrupts
+                break;
+            }
+        }
+
+        c = decodeMapping(encoded_value);
+        printf("%c\n", c);
+
+    }
+
+//    ulStatus = MAP_GPIOIntStatus (GPIOA1_BASE, false);
+//    MAP_GPIOIntClear(GPIOA1_BASE, ulStatus);			// clear interrupts on GPIOA1
+//    ulStatus = MAP_GPIOIntStatus (switch2.port, false);
+//    MAP_GPIOIntClear(switch2.port, ulStatus);			// clear interrupts on GPIOA2
+//
+//    // clear global variables
+//    SW2_intcount=0;
+//    SW3_intcount=0;
+//    SW2_intflag=0;
+//    SW3_intflag=0;
 
     // Enable SW2 and SW3 interrupts
-    MAP_GPIOIntEnable(GPIOA1_BASE, 0x20);
-    MAP_GPIOIntEnable(switch2.port, switch2.pin);
-
-
-    Message("\t\t****************************************************\n\r");
-    Message("\t\t\tPush SW3 or SW2 to generate an interrupt\n\r");
-    Message("\t\t ****************************************************\n\r");
-    Message("\n\n\n\r");
-	Report("SW2 ints = %d\tSW3 ints = %d\r\n",SW2_intcount,SW3_intcount);
-
-    while (1) {
-    	while ((SW2_intflag==0) && (SW3_intflag==0)) {;}
-    	if (SW2_intflag) {
-    		SW2_intflag=0;	// clear flag
-    		Report("SW2 ints = %d\tSW3 ints = %d\r\n",SW2_intcount,SW3_intcount);
-    	}
-    	if (SW3_intflag) {
-    		SW3_intflag=0;	// clear flag
-    		Report("SW2 ints = %d\tSW3 ints = %d\r\n",SW2_intcount,SW3_intcount);
-    	}
-    }
+//    MAP_GPIOIntEnable(GPIOA1_BASE, 0x20);
+//    MAP_GPIOIntEnable(switch2.port, switch2.pin);
+//
+//
+//    Message("\t\t****************************************************\n\r");
+//    Message("\t\t\tPush SW3 or SW2 to generate an interrupt\n\r");
+//    Message("\t\t ****************************************************\n\r");
+//    Message("\n\n\n\r");
+//	Report("SW2 ints = %d\tSW3 ints = %d\r\n",SW2_intcount,SW3_intcount);
+//
+//    while (1) {
+//    	while ((SW2_intflag==0) && (SW3_intflag==0)) {;}
+//    	if (SW2_intflag) {
+//    		SW2_intflag=0;	// clear flag
+//    		Report("SW2 ints = %d\tSW3 ints = %d\r\n",SW2_intcount,SW3_intcount);
+//    	}
+//    	if (SW3_intflag) {
+//    		SW3_intflag=0;	// clear flag
+//    		Report("SW2 ints = %d\tSW3 ints = %d\r\n",SW2_intcount,SW3_intcount);
+//    	}
+//    }
 }
 
 //*****************************************************************************
