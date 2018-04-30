@@ -3,8 +3,8 @@
 //
 // Application Name     - int_sw
 // Application Overview - The objective of this application is to demonstrate
-//							GPIO interrupts using SW2 and SW3.
-//							NOTE: the switches are not debounced!
+//                          GPIO interrupts using SW2 and SW3.
+//                          NOTE: the switches are not debounced!
 //
 //*****************************************************************************
 
@@ -54,6 +54,18 @@ volatile unsigned long ZERO_INTERVAL = 106667;
 volatile unsigned long encoded_value;
 volatile unsigned long last_button;
 volatile unsigned long ONE_BUTTON_TIMER_OUT = 80000*18;
+volatile unsigned long end_length = 40 * 80000;
+volatile unsigned long init_length = 11 * 80000;
+volatile unsigned long current_time;
+
+volatile unsigned long counter = 0;
+volatile unsigned long timeSeries[35];
+
+volatile unsigned long startTime = 13.512; // minimum of the start time
+volatile unsigned long endTime = 40.52; // min
+//volatile unsigned long oneInterval = 2.254; // min
+//volatile unsigned long zeroInterval = 1.154; // min
+volatile unsigned long middleValue = 1.704; // convert to tick
 
 // frequency of clock per tick: 80MHZ = 12.5ns
 
@@ -79,40 +91,15 @@ static void BoardInit(void);
 //*****************************************************************************
 //                      LOCAL FUNCTION DEFINITIONS                         
 //*****************************************************************************
-static void GPIOA1IntHandler(void) { // SW3 handler
-    unsigned long ulStatus;
-
-    ulStatus = MAP_GPIOIntStatus (GPIOA1_BASE, true);
-    MAP_GPIOIntClear(GPIOA1_BASE, ulStatus);		// clear interrupts on GPIOA1
-    SW3_intcount++;
-    SW3_intflag=1;
-}
 
 
-
-static void GPIOA2IntHandler(void) {	// SW2 handler
-	unsigned long ulStatus;
-	unsigned long current_time;
-	unsigned long diff_time;
-
+static void GPIOA2IntHandler(void) {    // SW2 handler
+    timeSeries[counter] = Timer_IF_GetCount(TIMERA2_BASE, TIMER_A); //get current time
+    count ++;
+    if(timeSeries[1] - timeSeries[0] == startTime)
+        counter = 0;
     ulStatus = MAP_GPIOIntStatus (sig_input.port, true);
-    MAP_GPIOIntClear(sig_input.port, ulStatus);		// clear interrupts on GPIOA2
-    current_time = TimerValueGet(TIMERA2_BASE, TIMER_A);
-    diff_time = current_time - previous_time;
-    previous_time = current_time;
-
-    TimerValueSet(TIMERA2_BASE, TIMER_A);
-
-    if (diff_time >= end_length)
-        last_button = encoded_value;
-        encoded_value = 0;
-        previous_time = 0;
-    else if (diff_time >= init_length)
-        return;
-    else if (diff_time >= ZERO_INTERVAL)
-        (encoded_value << 1)++;
-    else
-        encoded_value << 1;
+    MAP_GPIOIntClear(sig_input.port, ulStatus);     // clear interrupts on GPIOA2
 }
 
 //*****************************************************************************
@@ -126,7 +113,7 @@ static void GPIOA2IntHandler(void) {	// SW2 handler
 //*****************************************************************************
 static void
 BoardInit(void) {
-	MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
+    MAP_IntVTableBaseSet((unsigned long)&g_pfnVectors[0]);
     
     // Enable Processor
     //
@@ -145,25 +132,43 @@ BoardInit(void) {
 //! \return None.
 //
 //****************************************************************************
+int decodeSignal(unsigned long* timeSeries) {
+    int i;
+    int binary = 0;
+    for(i = 2; i < 34; i++) {
+        int tmp = (int)(timeSeries[i] - timeSeries[i - 1]);
+        if(tmp < endTime)
+            continue;
+        else if(tmp < middleValue)
+            binary << 1;
+        else
+            binary << 1;
+            binary ++;
+    }
+    return binary;
+}
 
-char decodeMapping(unsigned long binary_val) {
+
+
+
+char decodeMapping(int binary_val) {
 
     char c;
 
     switch(binary_val) {
-        case 0000 0010 1111 1101 1000 0000 0111 1111: // button 1
+        case 0x807f : // button 1
             c = '1';
             break;
-        case 0000 0010 1111 1101 0100 0000 1011 1111: // button 2
+        case 0x40BF : // button 2
             c = '2';
             break;
-        case 0000 0010 1111 1101 1100 0000 0011 1111: // button 3
+        case 0xC03F : // button 3
             c = '3';
             break;
-        case 0000 0010 1111 1101 0010 0000 1101 1111:
+        case 0x20DF :
             c = '4';
             break;
-        case 0000 0010 1111 1101 1010 0000 0101 1111:
+        case 0xA05F:
             c = '5';
             break;
         }
@@ -173,10 +178,10 @@ char decodeMapping(unsigned long binary_val) {
 }
 
 int main() {
-	unsigned long ulStatus;
-	unsigned long timer_start 100;
-	char [] message = '';
-	char c;
+    unsigned long ulStatus;
+    unsigned long timer_start = 100;
+//    char [] message = '';
+    char c;
 
 
     BoardInit();
@@ -197,30 +202,30 @@ int main() {
     MAP_TimerConfigure(TIMERA2_BASE, TIMER_CFG_PERIODIC_UP);
 
     // counts up
-    TimerValueSet(TIMERA2_BASE, TIMER_A, timer_start);
+//    TimerValueSet(TIMERA2_BASE, TIMER_A, 0);
 
     TimerEnable(TIMERA2_BASE, TIMER_A);
 
     while(1) {
 
-        // one button time
-        while(1){
-
-            if (current_time < ONE_BUTTON_TIMER_OUT) {
-                // disable interrupts
-                break;
-            }
-        }
-
-        c = decodeMapping(encoded_value);
-        printf("%c\n", c);
+       while(1){
+           if(counter < 35) { // still reading signals from 1 button
+               continue;
+           }else{
+               //TODO: disable interrupt
+               counter = 0;
+               int binary = decodeSignal(timeSeries);
+               char button = decodeMapping(binary);
+               printf("%c\n", button);
+           }
+       }
 
     }
 
 //    ulStatus = MAP_GPIOIntStatus (GPIOA1_BASE, false);
-//    MAP_GPIOIntClear(GPIOA1_BASE, ulStatus);			// clear interrupts on GPIOA1
+//    MAP_GPIOIntClear(GPIOA1_BASE, ulStatus);          // clear interrupts on GPIOA1
 //    ulStatus = MAP_GPIOIntStatus (switch2.port, false);
-//    MAP_GPIOIntClear(switch2.port, ulStatus);			// clear interrupts on GPIOA2
+//    MAP_GPIOIntClear(switch2.port, ulStatus);         // clear interrupts on GPIOA2
 //
 //    // clear global variables
 //    SW2_intcount=0;
@@ -231,25 +236,6 @@ int main() {
     // Enable SW2 and SW3 interrupts
 //    MAP_GPIOIntEnable(GPIOA1_BASE, 0x20);
 //    MAP_GPIOIntEnable(switch2.port, switch2.pin);
-//
-//
-//    Message("\t\t****************************************************\n\r");
-//    Message("\t\t\tPush SW3 or SW2 to generate an interrupt\n\r");
-//    Message("\t\t ****************************************************\n\r");
-//    Message("\n\n\n\r");
-//	Report("SW2 ints = %d\tSW3 ints = %d\r\n",SW2_intcount,SW3_intcount);
-//
-//    while (1) {
-//    	while ((SW2_intflag==0) && (SW3_intflag==0)) {;}
-//    	if (SW2_intflag) {
-//    		SW2_intflag=0;	// clear flag
-//    		Report("SW2 ints = %d\tSW3 ints = %d\r\n",SW2_intcount,SW3_intcount);
-//    	}
-//    	if (SW3_intflag) {
-//    		SW3_intflag=0;	// clear flag
-//    		Report("SW2 ints = %d\tSW3 ints = %d\r\n",SW2_intcount,SW3_intcount);
-//    	}
-//    }
 }
 
 //*****************************************************************************
