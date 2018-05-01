@@ -32,7 +32,7 @@
 #include "gpio.h"
 #include "utils.h"
 #include "timer.h"
-
+#include "timer_if.h"
 // Common interface includes
 #include "uart_if.h"
 
@@ -44,28 +44,13 @@
 //*****************************************************************************
 extern void (* const g_pfnVectors[])(void);
 
-volatile unsigned long SW2_intcount;
-volatile unsigned long SW3_intcount;
-volatile unsigned char SW2_intflag;
-volatile unsigned char SW3_intflag;
-
-volatile unsigned long previous_time;
-volatile unsigned long ZERO_INTERVAL = 106667;
-volatile unsigned long encoded_value;
-volatile unsigned long last_button;
-volatile unsigned long ONE_BUTTON_TIMER_OUT = 80000*18;
-volatile unsigned long end_length = 40 * 80000;
-volatile unsigned long init_length = 11 * 80000;
-volatile unsigned long current_time;
+static volatile unsigned long g_ulBase;
+static volatile unsigned long g_ulRefBase;
 
 volatile unsigned long counter = 0;
 volatile unsigned long timeSeries[35];
-
-volatile unsigned long startTime = 13.512; // minimum of the start time
-volatile unsigned long endTime = 40.52; // min
-//volatile unsigned long oneInterval = 2.254; // min
-//volatile unsigned long zeroInterval = 1.154; // min
-volatile unsigned long middleValue = 1.704; // convert to tick
+const unsigned long middleValue = 100000 - 50; // convert to tick
+volatile int timeOut = 0;
 
 // frequency of clock per tick: 80MHZ = 12.5ns
 
@@ -80,26 +65,34 @@ typedef struct PinSetting {
 } PinSetting;
 
 
-// pin 15
-static PinSetting sig_input = { .port = GPIOA2_BASE, .pin = 0x40};
+// pin45 are using
+static PinSetting sig_input = { .port = GPIOA3_BASE, .pin = 0x80};
+//static PinSetting sig_input = { .port = GPIOA3_BASE, .pin = 0x10};
 
 //*****************************************************************************
-//                      LOCAL FUNCTION PROTOTYPES                           
+//                      LOCAL FUNCTION PROTOTYPES
 //*****************************************************************************
 static void BoardInit(void);
 
 //*****************************************************************************
-//                      LOCAL FUNCTION DEFINITIONS                         
+//                      LOCAL FUNCTION DEFINITIONS
 //*****************************************************************************
 
 
 static void GPIOA2IntHandler(void) {    // SW2 handler
-    timeSeries[counter] = Timer_IF_GetCount(TIMERA2_BASE, TIMER_A); //get current time
-    count ++;
-    if(timeSeries[1] - timeSeries[0] == startTime)
-        counter = 0;
+    unsigned long ulStatus;
     ulStatus = MAP_GPIOIntStatus (sig_input.port, true);
     MAP_GPIOIntClear(sig_input.port, ulStatus);     // clear interrupts on GPIOA2
+
+    if(counter == 0){
+        Timer_IF_Start(g_ulBase, TIMER_A, 500);
+    }
+
+    timeSeries[counter] = Timer_IF_GetCount(g_ulBase, TIMER_A); //get current time
+    counter ++;
+//    if(timeSeries[1] - timeSeries[0] == startTime)
+//        counter = 0;
+
 }
 
 //*****************************************************************************
@@ -122,28 +115,25 @@ BoardInit(void) {
 
     PRCMCC3200MCUInit();
 }
-//****************************************************************************
-//
-//! Main function
-//!
-//! \param none
-//! 
-//!
-//! \return None.
-//
-//****************************************************************************
-int decodeSignal(unsigned long* timeSeries) {
+
+void TimerRefIntHandler(void)
+{
+    Timer_IF_InterruptClear(g_ulRefBase);
+    timeOut = 1;
+}
+
+
+long decodeSignal() {
     int i;
-    int binary = 0;
-    for(i = 2; i < 34; i++) {
+    long binary = 0;
+    for(i = 18; i < 34; i++) {
         int tmp = (int)(timeSeries[i] - timeSeries[i - 1]);
-        if(tmp < endTime)
-            continue;
-        else if(tmp < middleValue)
-            binary << 1;
-        else
-            binary << 1;
+        if(tmp < middleValue)
+            binary <<= 1;
+        else {
+            binary <<= 1;
             binary ++;
+        }
     }
     return binary;
 }
@@ -151,38 +141,92 @@ int decodeSignal(unsigned long* timeSeries) {
 
 
 
-char decodeMapping(int binary_val) {
-
-    char c;
-
+int decodeBinary(long binary_val) {
+    int c = -1;
     switch(binary_val) {
         case 0x807f : // button 1
-            c = '1';
+            c = 1;
             break;
         case 0x40BF : // button 2
-            c = '2';
+            c = 2;
             break;
         case 0xC03F : // button 3
-            c = '3';
+            c = 3;
             break;
         case 0x20DF :
-            c = '4';
+            c = 4;
             break;
         case 0xA05F:
-            c = '5';
+            c = 5;
+            break;
+        case 0x609F:
+            c = 6;
+            break;
+        case 0xE01F:
+            c = 7;
+            break;
+        case 0x10EF:
+            c = 8;
+            break;
+        case 0x906F:
+            c = 9;
+            break;
+        case 0xFF:
+            c = 0;
+            break;
+        case 0x8F7:
+            c = 11; // mute
+            break;
+        case 0x2FD:
+            c = 12; // last
+            break;
+        default:
+            c = -1;
             break;
         }
-
     return c;
+}
 
+
+
+char decodeChar(int button, int pressTime) {
+    char c;
+    switch(button) {
+           case 2 : // button 2
+               c = 'A' + (pressTime - 1) % 3;
+               break;
+           case 3 : // button 3
+               c = 'D' + (pressTime - 1) % 3;
+               break;
+           case 4 :
+               c = 'G' + (pressTime - 1) % 3;
+               break;
+           case 5:
+               c = 'J' + (pressTime - 1) % 3;
+               break;
+           case 6:
+               c = 'M' + (pressTime - 1) % 3;
+               break;
+           case 7:
+               c = 'P' + (pressTime - 1) % 4;
+               break;
+           case 8:
+               c = 'T' + (pressTime - 1) % 3;
+               break;
+           case 9:
+               c = 'W' + (pressTime - 1) % 4;
+               break;
+           default:
+               c = '0';
+           }
+    return c;
 }
 
 int main() {
-    unsigned long ulStatus;
-    unsigned long timer_start = 100;
-//    char [] message = '';
-    char c;
 
+    unsigned long ulStatus;
+
+    int prev = -1;
 
     BoardInit();
     
@@ -199,48 +243,58 @@ int main() {
 
     MAP_GPIOIntTypeSet(sig_input.port, sig_input.pin, GPIO_FALLING_EDGE);
 
-    MAP_TimerConfigure(TIMERA2_BASE, TIMER_CFG_PERIODIC_UP);
+    ulStatus = MAP_GPIOIntStatus (sig_input.port, false);
+    MAP_GPIOIntClear(sig_input.port, ulStatus);
+    MAP_GPIOIntEnable(sig_input.port, sig_input.pin);
 
-    // counts up
-//    TimerValueSet(TIMERA2_BASE, TIMER_A, 0);
 
-    TimerEnable(TIMERA2_BASE, TIMER_A);
+    g_ulBase = TIMERA0_BASE;
+    g_ulRefBase = TIMERA1_BASE;
+    //
+    // Base address for second timer
+    //
+    //
+    // Configuring the timers
+    //
+    Timer_IF_Init(PRCM_TIMERA0, g_ulBase, TIMER_CFG_PERIODIC, TIMER_A, 0);
+    Timer_IF_Init(PRCM_TIMERA1, g_ulRefBase, TIMER_CFG_PERIODIC, TIMER_A, 0);
+
+//    TimerEnable(TIMERA2_BASE, TIMER_A);
 
     while(1) {
+        int pressTime = 0;
 
        while(1){
            if(counter < 35) { // still reading signals from 1 button
                continue;
            }else{
-               //TODO: disable interrupt
-               counter = 0;
-               int binary = decodeSignal(timeSeries);
-               char button = decodeMapping(binary);
-               printf("%c\n", button);
+               MAP_GPIOIntDisable(sig_input.port, sig_input.pin); //disable interrupt
+               Timer_IF_Stop(g_ulBase, TIMER_A); // disable timer
+               counter = 0; // reset counter
+               long binary = decodeSignal(); // decode signal to binary
+               int button = decodeBinary(binary); // convert binary to button
+               printf("Button %d Pressed\n", button);
+
+               Timer_IF_DeInit(g_ulRefBase, TIMER_A);
+
+               if(button == prev && !timeOut)
+                   pressTime ++;
+               else
+                   pressTime = 1;
+
+               prev = button;
+               timeOut = 0;
+
+               char letter = decodeChar(button, pressTime);
+               printf("Char is %c\n", letter);
+
+
+               ulStatus = MAP_GPIOIntStatus (sig_input.port, false);
+               MAP_GPIOIntClear(sig_input.port, ulStatus);
+               MAP_GPIOIntEnable(sig_input.port, sig_input.pin);
+               Timer_IF_IntSetup(g_ulRefBase, TIMER_A, TimerRefIntHandler);
+               Timer_IF_Start(g_ulRefBase, TIMER_A, 300);
            }
        }
 
     }
-
-//    ulStatus = MAP_GPIOIntStatus (GPIOA1_BASE, false);
-//    MAP_GPIOIntClear(GPIOA1_BASE, ulStatus);          // clear interrupts on GPIOA1
-//    ulStatus = MAP_GPIOIntStatus (switch2.port, false);
-//    MAP_GPIOIntClear(switch2.port, ulStatus);         // clear interrupts on GPIOA2
-//
-//    // clear global variables
-//    SW2_intcount=0;
-//    SW3_intcount=0;
-//    SW2_intflag=0;
-//    SW3_intflag=0;
-
-    // Enable SW2 and SW3 interrupts
-//    MAP_GPIOIntEnable(GPIOA1_BASE, 0x20);
-//    MAP_GPIOIntEnable(switch2.port, switch2.pin);
-}
-
-//*****************************************************************************
-//
-// Close the Doxygen group.
-//! @}
-//
-//*****************************************************************************
