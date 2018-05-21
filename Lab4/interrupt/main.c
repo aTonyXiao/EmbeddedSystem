@@ -314,7 +314,7 @@ int main() {
             ulStatus = MAP_TimerIntStatus(TIMERA0_BASE, false);
             MAP_TimerIntClear(TIMERA0_BASE, ulStatus);
 
-            for (i = 7; i >= 0; i++)
+            for (i = 7; i >= 0; i--)
                 power_all[i] = goertzel(coeff_array[i]); // call goertzel
 
             new = decode();
@@ -324,7 +324,7 @@ int main() {
                 MAP_TimerIntDisable(TIMERA1_BASE, TIMER_TIMA_TIMEOUT);
                 // disable
                 int control = 0;
-                if(signal == 10){ // MUTE
+                if(new == 10){ // MUTE
 
                   int i;
 
@@ -339,7 +339,7 @@ int main() {
                   fillRect(0, 0, 200, 8, BLACK);
                   top_x = 0;
 
-                }else if(signal == 12){ //LAST
+                }else if(new == 12){ //LAST
                   if (bufferLength > 0) {
                       textbuffer[--bufferLength] = '\0';
                       fillRect(top_x, 0, 5, 8, BLACK);
@@ -349,7 +349,7 @@ int main() {
                   }
                 }
 
-                switch (signal) {
+                switch (new) {
                     case 1:
                       buttonPtr = button1;
                       break;
@@ -386,7 +386,7 @@ int main() {
                   continue;
                 }
                 else{
-                    if(signal == old && isNewChar != 1){
+                    if(new == old && isNewChar != 1){
                       printChar++;
                       if(*printChar == '\0')
                           printChar = buttonPtr;
