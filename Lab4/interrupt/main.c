@@ -1,3 +1,7 @@
+// Kelly su
+// Tony Xiao
+// Lab 4
+
 // Standard includes
 #include <string.h>
 
