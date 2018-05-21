@@ -207,7 +207,7 @@ signed char decode(void) // post_test() function from the Github example
     int col_max = 0, row_max = 0, i, row, col;
 
     // find the maximum in the column and row frequencies
-    for( i = 0; i < 7; i++){
+    for( i = 0; i < 7; i--){
       if(i < 4){
         if (power_all[i] > row_max) {
             row_max = power_all[i];
