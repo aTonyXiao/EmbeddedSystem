@@ -42,6 +42,7 @@ unsigned char flag;
 unsigned char startProcess;
 
 unsigned short sample_num;
+unsigned short sample_count;
 signed long sample_buffer[400];
 int new_digit = 0;
 int num;
@@ -57,6 +58,8 @@ char *printChar="\0";
 unsigned char isNewChar;
 
 int top_x = 0;
+
+int prevChar = -1;
 
 #define LOWER_BOUND  20000
 #define HIGHER_BOUND  40000
@@ -201,7 +204,7 @@ long goertzel(long coeff)
     return power;
 }
 
-signed char decode(void) // post_test() function from the Github example
+signed char post_test(void) // post_test() function from the Github example
 {
     //init variables
     int col_max = 0, row_max = 0, i, row, col;
@@ -227,8 +230,14 @@ signed char decode(void) // post_test() function from the Github example
     if(power_all[row] > HIGHER_BOUND && power_all[col] > HIGHER_BOUND && (new_digit == 1)) { // check maximum powers of row & column exceed threshold
         new_digit = 0;
         int res = 3 * row + col - 4 + 1;
+
+        if(res == prevChar)
+          sample_count ++; // if match the prev button increase the confidence number
+        prevChar = res;
+
         return res;
     }
+
 
     return -1;
 }
@@ -317,8 +326,10 @@ int main() {
             for (i = 7; i >= 0; i--)
                 power_all[i] = goertzel(coeff_array[i]); // call goertzel
 
-            new = decode();
+            new = post_test();
 
+            if(sample_count > 4) {//collect 4 sample with good confidence
+              sample_count = 0;
             if (new != -1) {
                 MAP_TimerDisable(TIMERA1_BASE, TIMER_A);
                 MAP_TimerIntDisable(TIMERA1_BASE, TIMER_TIMA_TIMEOUT);
@@ -410,6 +421,7 @@ int main() {
                 old = new;
                 isNewChar = 0;
             }
+          }
             // Re-enable sampling timer
             MAP_TimerLoadSet(TIMERA0_BASE, TIMER_A, 5000);
             MAP_TimerIntEnable(TIMERA0_BASE, TIMER_A);
