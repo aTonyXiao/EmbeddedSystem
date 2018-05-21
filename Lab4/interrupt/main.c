@@ -147,7 +147,7 @@ TimerA0IntHandler(void)
     flag = 1;
     sample_num++;
 
-    if (sample_num == 400)
+    if (sample_num > 409)
         startProcess = 1;
 }
 
