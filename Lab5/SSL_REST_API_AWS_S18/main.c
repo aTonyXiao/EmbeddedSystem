@@ -1117,12 +1117,12 @@ int main()
                 {
                     if (button == 11) // mute(enter)
                     {
-                        strcat(DATA1, "{\"state\": {\r\n\"desired\" : {\r\n\"default\" : \"");
+                        strcat(DATA1, "{\"state\": {\r\n\"desired\" : {\r\n\"default\" : \""); //concast the DATA1 to SMS format
                         strcat(DATA1, buffer);
                         strcat(DATA1, "\"\r\n}}}\r\n\r\n");
 
                         int i;
-                        http_post(lRetVal);
+                        http_post(lRetVal); // send message
                         sl_Stop(SL_STOP_TIMEOUT);
 
                         for (i = 0; i < strlen(buffer); i++) // clean all buffer
@@ -1182,5 +1182,3 @@ int main()
 
     }
 }
-
-
