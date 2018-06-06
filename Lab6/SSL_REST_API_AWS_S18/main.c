@@ -30,6 +30,10 @@
 #include "uart.h"
 #include "common.h"
 
+#define INT_MIN -2147483648
+#define INT_MAX +2147483647
+#define MAX_DEPTH 8
+
 #define SPI_IF_BIT_RATE  100000
 //*****************************************************************************
 //                 GLOBAL VARIABLES -- Start
@@ -1200,7 +1204,6 @@ int detectButton(char tag[])
     }
 }
 
-
 void display()
 {
     fillScreen(BLACK);
@@ -1256,11 +1259,62 @@ void Github()
     detectButton("#Github");
 }
 
-void Game()
+int check_won(int row, int col)
 {
-    setCursor(0, 0);
-    display();
+    int count = 0;
+    int i = 0;
+    int j = 0;
 
+    //vertical
+    for (i = row + 1; i < 6; i++)
+    {
+        if (moves[i - 1][col] == moves[i][col])
+        {
+            count++;
+            if (count == 3)
+                return 1;
+        }
+        else
+            count = 0;
+    }
+
+    //horizontal
+    count = 0;
+    for (j = col + 1; j < 7 && moves[row][j - 1] == moves[row][j]; j++) // right
+        count++;
+    for (j = col - 1; j >= 0 && moves[row][j + 1] == moves[row][j]; j--) // left
+        count++;
+    if (count >= 3)
+        return 1;
+    count = 0;
+
+//    rightDiag '/'
+    count = 0;
+    for (i = row - 1, j = col + 1;
+            i >= 0 && j < 7 && moves[i][j] == moves[i + 1][j - 1]; i--, j++) //up
+        count++;
+    for (i = row + 1, j = col - 1;
+            i < 6 && j >= 0 && moves[i][j] == moves[i - 1][j + 1]; i++, j--) //down
+        count++;
+    if (count == 3)
+        return 1;
+
+//    leftDiag '\'
+    count = 0;
+    for (i = row - 1, j = col - 1;
+            i >= 0 && j >= 0 && moves[i][j] == moves[i + 1][j + 1]; i--, j--) //up
+        count++;
+    for (i = row + 1, j = col + 1;
+            i < 6 && j < 7 && moves[i][j] == moves[i - 1][j - 1]; i++, j++) //down
+        count++;
+    if (count == 3)
+        return 1;
+
+    return 0;
+}
+
+void connect42P()
+{
     int count = 0;
     int player = 1;
     int nextMove;
@@ -1319,7 +1373,7 @@ void Game()
             setCursor(0, 110);
             strcat(winInfo, " Win!");
             Outstr(winInfo);
-//            delay(50);
+            //            delay(50);
             break;
         }
 
@@ -1328,41 +1382,352 @@ void Game()
             fillRect(0, 95, 128, 30, BLACK);
             setCursor(0, 110);
             Outstr("Draw!");
-//            delay(50);
+            //            delay(50);
             break;
         }
 
         player = (player == 1) ? 2 : 1;
     }
-
-    fillRect(0, 30, 128, 30, BLACK);
-    setCursor(0, 40);
-    Outstr("Press Enter..");
-    strcat(buffer, "I just win the Connect4 on CC3200!");
-    mainMenu = 0;
-    detectButton("#FB");
 }
 
-void Pizza()
+int get_new_state(int col, int player) // drop player in given col, update board, return row "supposing given col always valid"
 {
-    fillScreen(BLACK);
-    setCursor(0, 0);
-    setTextColor(RED, BLACK);
-    Outstr("Type any key...");
-    setTextColor(WHITE, BLACK);
-    setCursor(0, 20);
-    detectButton("#Pizza");
+    int i;
+    for (i = 5; i >= 0; i--)
+    {
+        if (moves[i][col] == 0)
+        {
+            moves[i][col] = player;
+            return i;
+        }
+    }
+
+    return -1;
 }
 
-void loading()
+int getUnitScore(int player, int p1Count, int comCount)
 {
-    fillScreen(BLACK);
-    setCursor(20, 50);
-    setTextColor(WHITE, BLACK);
-    Outstr("Loading...");
+    int raw_score[7] = { 0, 1, 4, 32, 128, 512, 2048 };
+    if (p1Count == comCount)
+    {
+        if (player == 2)
+            return 1;
+        return -1;
+    }
+    else if (p1Count < comCount)
+    {
+        if (player == 2)
+            return raw_score[comCount + 1] - raw_score[p1Count];
+        return raw_score[comCount] - raw_score[p1Count];
+    }
+    else
+    {
+        if (player == 2)
+            return raw_score[comCount] - raw_score[p1Count];
+        return raw_score[comCount] - raw_score[p1Count + 1];
+    }
 }
 
+int getHeuristicScore(int depth, int col)
+{
+    int score = 0;
+    int comCount = 0; // com
+    int p1Count = 0; // p1
+    int row = 0;
+    int v, h, x = col, y = 0;
+    for (row = 5; row >= 0; row--)
+    {
+        if (moves[row][col] == 0)
+        {
+            y = row + 1;
+            break;
+        }
+    }
 
+    int vertical = 1, horizontal = 1, diagA = 1, diagB = 1;
+    int connect = 1;
+
+    int player = moves[y][x];
+
+    //vertical
+    comCount = p1Count = 0;
+    for (v = x + 1; v < 6; v++)
+    { // up
+        if (connect == 1 && moves[y][v] == player)
+            vertical++;
+        else
+            connect = 0;
+
+        if (moves[y][v] == 2)
+            comCount++;
+        else if (moves[y][v] == 1)
+            p1Count++;
+    }
+
+    connect = 1;
+
+    for (v = x - 1; v >= 0; v--)
+    { // down
+        if (connect == 1 && moves[y][v] == player)
+            vertical++;
+        else
+            connect = 0;
+
+        if (moves[y][v] == 2)
+            comCount++;
+        else if (moves[y][v] == 1)
+            p1Count++;
+    }
+
+    connect = 1;
+
+    if (vertical >= 4)
+    {
+        if (depth < 3)
+            return player == 2 ? INT_MAX : INT_MIN;
+    }
+    score += getUnitScore(player, p1Count, comCount);
+
+    //horizontal
+    comCount = p1Count = 0;
+    for (h = y + 1; h < 7; h++)
+    { // right
+        if (connect == 1 && moves[h][x] == player)
+            horizontal++;
+        else
+            connect = 0;
+
+        if (moves[h][x] == 2)
+            comCount++;
+        else if (moves[h][x] == 1)
+            p1Count++;
+    }
+
+    connect = 1;
+
+    for (h = y - 1; h >= 0; h--)
+    { // left
+        if (connect == 1 && moves[h][x] == player)
+            horizontal++;
+        else
+            connect = 0;
+
+        if (moves[h][x] == 2)
+            comCount++;
+        else if (moves[h][x] == 1)
+            p1Count++;
+    }
+
+    connect = 1;
+
+    if (horizontal >= 4)
+    {
+        if (depth < 3)
+            return player == 2 ? INT_MAX : INT_MIN;
+    }
+    score += getUnitScore(player, p1Count, comCount);
+
+    //digaA "/"
+    comCount = p1Count = 0;
+    for (h = y + 1, v = x + 1; h < 6 && v < 7; v++, h++)
+    { //up right
+        if (connect == 1 && moves[h][v] == player)
+            diagA++;
+        else
+            connect = 0;
+
+        if (moves[h][v] == 2)
+            comCount++;
+        else if (moves[h][v] == 1)
+            p1Count++;
+    }
+
+    connect = 1;
+
+    for (h = y - 1, v = x - 1; h >= 0 && v >= 0; h--, v--)
+    { // down left
+        if (connect == 1 && moves[h][v] == player)
+            diagA++;
+        else
+            connect = 0;
+
+        if (moves[h][v] == 2)
+            comCount++;
+        else if (moves[h][v] == 1)
+            p1Count++;
+    }
+
+    connect = 1;
+
+    if (diagA >= 4)
+    {
+        if (depth < 3)
+            return player == 2 ? INT_MAX : INT_MIN;
+    }
+    score += getUnitScore(player, p1Count, comCount);
+
+    //digaB "\"
+    comCount = p1Count = 0;
+    for (h = y - 1, v = x + 1; h >= 0 && v < 7; h--, v++)
+    { // up left
+        if (connect == 1 && moves[h][v] == player)
+            diagB++;
+        else
+            connect = 0;
+
+        if (moves[h][v] == 2)
+            comCount++;
+        else if (moves[h][v] == 1)
+            p1Count++;
+    }
+
+    connect = 1;
+
+    for (h = y + 1, v = x - 1; v >= 0 && h < 6; h++, v--)
+    { // left
+        if (connect == 1 && moves[h][v] == player)
+            diagB++;
+        else
+            connect = 0;
+
+        if (moves[h][v] == 2)
+            comCount++;
+        else if (moves[h][v] == 1)
+            p1Count++;
+    }
+
+    connect = 1;
+
+    if (diagB >= 4)
+    {
+        if (depth < 3)
+            return player == 2 ? INT_MAX : INT_MIN;
+    }
+    score += getUnitScore(player, p1Count, comCount);
+    return score;
+}
+
+int alphabeta(int alpha, int beta, int depth, int player, int row, int col) // alpha-beta algorithm
+{
+    int possibleSteps[7] = { -1, -1, -1, -1, -1, -1, -1 };
+
+    int result = check_won(row, col);
+    if (result != 0 || depth == MAX_DEPTH)
+    {
+        return getHeuristicScore(depth, col); // return the score
+    }
+
+    for (col = 0; col < 7; col++)
+    {
+        if (moves[0][col] == 0)
+            possibleSteps[col] = col;
+    }
+
+    for (col = 0; col < 7; col++)
+    {
+        int step = possibleSteps[col];
+        if (step == -1)
+            continue;
+
+        if (alpha >= beta)
+            return player > 1 ? alpha : beta; // true: maximize the score, false: minimize the score
+
+        if (player > 1) // COM maximize
+        {
+            int row = get_new_state(step, 2);
+            int score = alphabeta(alpha, beta, depth + 1, 1, row, step);
+            moves[row][step] = 0;
+            alpha = score > alpha ? score : alpha;
+        }
+        else // P1 minimize
+        {
+            int row = get_new_state(step, 1);
+            int score = alphabeta(alpha, beta, depth + 1, 2, row, step);
+            moves[row][step] = 0;
+            beta = score < beta ? score : beta;
+        }
+    }
+
+    return player > 1 ? alpha : beta;
+}
+
+int evaluateMove()
+{ //1 for P1, 2 for COM
+    int depth = 0;
+    int alpha = INT_MIN; // max lower bound
+    int beta = INT_MAX; // min upper bound
+    int possibleSteps[7] = { -1, -1, -1, -1, -1, -1, -1 };
+    int col = 0;
+    int bestMove = -1;
+
+    for (col = 0; col < 7; col++)
+    {
+        if (moves[0][col] == 0)
+            possibleSteps[col] = col;
+    }
+
+    for (col = 0; col < 7; col++)
+    { // check for win (winning purpose)
+        int step = possibleSteps[col];
+        if (step == -1)
+            continue;
+        int win = 0;
+
+        int row = get_new_state(step, 2); // test if COM will win in next move, 2 for COM
+        if (check_won(row, step))
+            win = 1;
+        moves[row][step] = 0; // undo the move
+        if (win == 1)
+            return step;
+    }
+
+    for (col = 0; col < 7; col++)
+    { // check for lose (blocking purpose)
+        int step = possibleSteps[col];
+        if (step == -1)
+            continue;
+        int win = 0;
+
+        int row = get_new_state(step, 1); // test if P1 will win in next move, 1 for P1
+        if (check_won(row, step))
+            win = 1;
+        moves[row][step] = 0; // undo the move
+        if (win == 1)
+            return step;
+    }
+
+    for (col = 0; col < 7; col++)
+    {
+        if (possibleSteps[col] != -1)
+        {
+            bestMove = possibleSteps[col];
+            break;
+        }
+    }
+
+    for (col = 0; col < 7; col++)
+    {
+        int step = possibleSteps[col];
+
+        if (step == -1)
+            continue;
+
+        if (alpha >= beta)
+            return bestMove;
+
+        int row = get_new_state(step, 2);
+        int score = alphabeta(alpha, beta, depth + 1, 2, row, step);
+        moves[row][step] = 0;
+
+        if (score > alpha)
+        {
+            bestMove = step;
+            alpha = score;
+        }
+    }
+
+    return bestMove;
+}
 
 int drop_and_display(int column, int player)
 {
@@ -1386,62 +1751,151 @@ int drop_and_display(int column, int player)
     return -1;
 }
 
-int check_won(int row, int col)
+void connect4AI()
 {
     int count = 0;
-    int i = 0;
-    int j = 0;
+    int player = 1;
+    int nextMove;
+    char string[100];
+    int row;
+    int i;
 
-    //vertical
-    for (i = row + 1; i < 6; i++)
+    while (1)
     {
-        if (moves[i - 1][col] == moves[i][col])
+        for (i = 0; i < 100; i++)
+            string[i] = '\0';
+
+        fillRect(0, 95, 128, 5, BLACK);
+        setCursor(0, 95);
+        if (player == 1)
         {
-            count++;
-            if (count == 3)
-                return 1;
+            strcat(string, "Your Move");
+            Outstr(string);
+            setCursor(0, 110);
+            Outstr("Select column");
+            nextMove = detectButton("");
         }
         else
-            count = 0;
-    }
-
-    //horizontal
-    count = 0;
-    for (j = 1; i < 7; i++)
-    {
-        if (moves[row][j - 1] == moves[row][j])
         {
-            count++;
-            if (count == 3)
-                return 1;
+            fillRect(0, 95, 128, 5, BLACK);
+            Outstr("I'm thinking...");
+            nextMove = evaluateMove();
         }
-        else
-            count = 0;
+
+        if (nextMove > 6)
+        {
+            fillRect(0, 110, 128, 5, BLACK);
+            setCursor(0, 110);
+            Outstr("Select a valid column");
+
+            while (nextMove > 6)
+                nextMove = detectButton("");
+        }
+
+        row = drop_and_display(nextMove, player);
+
+        if (row == -1)
+        {
+            fillRect(0, 110, 128, 5, BLACK);
+            setCursor(0, 110);
+            Outstr("Select a valid column");
+
+            while (row == -1)
+            {
+                nextMove = detectButton("");
+                row = drop_and_display(nextMove, player);
+            }
+        }
+
+        count++;
+
+        if (check_won(row, nextMove))
+        {
+            fillRect(0, 95, 128, 30, BLACK);
+            setCursor(0, 110);
+            if (player == 1)
+                Outstr("You Win!");
+            else
+                Outstr("COM is smarter!");
+            //            delay(50);
+            break;
+        }
+
+        if (count == 42)
+        {
+            fillRect(0, 95, 128, 30, BLACK);
+            setCursor(0, 110);
+            Outstr("Draw!");
+            //            delay(50);
+            break;
+        }
+
+        player = (player == 1) ? 2 : 1;
     }
 
-//    rightDiag '/'
-    count = 0;
-    for (i = row - 1, j = col + 1;
-            i >= 0 && j < 7 && moves[i][j] == moves[i + 1][j - 1]; i--, j++) //up
-        count++;
-    for (i = row + 1, j = col - 1;
-            i < 6 && j >= 0 && moves[i][j] == moves[i - 1][j + 1]; i++, j--) //down
-        count++;
-    if (count == 3)
-        return 1;
+}
 
-//    leftDiag '\'
-    count = 0;
-    for (i = row - 1, j = col - 1;
-            i >= 0 && j >= 0 && moves[i][j] == moves[i + 1][j + 1]; i--, j--) //up
-        count++;
-    for (i = row + 1, j = col + 1;
-            i < 6 && j < 7 && moves[i][j] == moves[i - 1][j - 1]; i++, j++) //down
-        count++;
-    if (count == 3)
-        return 1;
+void Game()
+{
+    setCursor(0, 0);
+    fillScreen(BLACK);
+    setCursor(5, 15); // set cursor
+    setTextColor(MAGENTA, BLACK); // set text color
+    setTextSize(1);  // set text size
+    Outstr("Welcome to Connect4! "); // print string to the OLED
+    setTextColor(WHITE, BLACK); // set another color
+    setCursor(10, 40); // set cursor
+    Outstr("1. P1 vs COM"); // print string to the OLED
+    setCursor(10, 70); // set cursor
+    Outstr("2. P1 vs P2"); // print string to the OLED
 
-    return 0;
+    int selection = detectButton("");
+    while (selection < 1 || selection > 2)
+    {
+        selection = detectButton("");
+    }
+
+    display();
+
+    switch (selection)
+    {
+    case 1:
+        connect4AI();
+        break;
+    case 2:
+        connect42P();
+        break;
+    }
+
+    fillRect(0, 30, 128, 30, BLACK);
+    setCursor(0, 40);
+    Outstr("Press Enter..");
+    int i, j;
+    for(i = 0; i < 6; i++)
+        for(j = 0; j < 7; j++)
+            moves[i][j] = 0;
+    strcat(buffer, "I just win the Connect4 on CC3200!");
+    mainMenu = 0;
+    detectButton("#FB");
+}
+
+void Pizza()
+{
+    fillScreen(BLACK);
+    setCursor(0, 0);
+    setTextColor(RED, BLACK);
+    Outstr("Type any key...");
+    setTextColor(WHITE, BLACK);
+    setCursor(0, 20);
+    detectButton("#Pizza");
+}
+
+void loading()
+{
+    fillScreen(BLACK);
+    setCursor(20, 50);
+    setTextColor(WHITE, BLACK);
+    Outstr("Loading...");
 }
 
 int main()
@@ -1538,4 +1992,3 @@ int main()
     }
 
 }
-
