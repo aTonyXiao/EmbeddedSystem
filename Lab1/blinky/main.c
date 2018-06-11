@@ -201,13 +201,10 @@ main()
 
         if(sw2 == 1 && flag != 2){ // if SW2 is Pressed && SW2 is not pressed continousely
             flag = 2;
-<<<<<<< HEAD
+
             GPIOPinWrite(GPIOA1_BASE, 0x20, 0); // set sw3 as unpressed
             GPIOPinWrite(GPIOA3_BASE, 0x10, 1<<4); // set P18 as high
-=======
-            GPIOPinWrite(GPIOA1_BASE, 0x20, 0);
-            GPIOPinWrite(GPIOA3_BASE, 0x10, 1<<4);
->>>>>>> origin/master
+            
             while(1){
                 Report("SW2 Pressed\n\r"); // print to console
                 MAP_UtilsDelay(8000000); // disaply delay
